@@ -1,7 +1,7 @@
 import { supabase } from "./supabase";
 import { api } from "./api";
 import { offlineQueue, AdminActionType } from "../utils/offlineQueue";
-import { parseAPIError, APIError } from "../utils/apiError";
+import { parseAPIError, APIError, ErrorCode } from "../utils/apiError";
 import { useNetworkStatus } from "../hooks/useNetworkStatus";
 
 const isAdmin = async (userId: string) => {
@@ -214,7 +214,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to approve track");
       if (apiError.isRetryable()) {
         await offlineQueue.add("APPROVE_TRACK", { trackId });
-        throw new APIError("Action queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Action queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -227,7 +230,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to reject track");
       if (apiError.isRetryable()) {
         await offlineQueue.add("REJECT_TRACK", { trackId });
-        throw new APIError("Action queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Action queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -240,7 +246,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to takedown track");
       if (apiError.isRetryable()) {
         await offlineQueue.add("TAKEDOWN_TRACK", { trackId });
-        throw new APIError("Action queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Action queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -303,7 +312,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to delete track");
       if (apiError.isRetryable()) {
         await offlineQueue.add("DELETE_TRACK", { trackId });
-        throw new APIError("Delete queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Delete queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -316,7 +328,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to update album");
       if (apiError.isRetryable()) {
         await offlineQueue.add("TOGGLE_ALBUM", { albumId, published });
-        throw new APIError("Update queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Update queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -330,7 +345,10 @@ export const adminService = {
       const apiError = parseAPIError(error, "Failed to delete album");
       if (apiError.isRetryable()) {
         await offlineQueue.add("DELETE_ALBUM", { albumId });
-        throw new APIError("Delete queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Delete queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }
@@ -365,7 +383,10 @@ export const adminService = {
       );
       if (apiError.isRetryable()) {
         await offlineQueue.add("VERIFY_ARTIST", { artistId, verified });
-        throw new APIError("Update queued. Will retry when online.", "OFFLINE");
+        throw new APIError(
+          "Update queued. Will retry when online.",
+          ErrorCode.OFFLINE,
+        );
       }
       throw apiError;
     }

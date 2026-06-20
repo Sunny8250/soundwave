@@ -55,7 +55,11 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
   const [spotlight, setSpotlight] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [networkError, setNetworkError] = useState<string | null>(null);
+  // Non-blocking banner — only shown if literally everything failed.
+  // Individual sections fail silently and just render empty states.
+  const [bannerError, setBannerError] = useState<string | null>(null);
+  // Shows a friendly "waking up the server" hint during Render cold starts
+  const [wakingUp, setWakingUp] = useState(false);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -64,57 +68,26 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
     return "Good Evening";
   };
 
-  const checkApiConnectivity = async () => {
-    if (typeof api.checkConnectivity === "function") {
-      return api.checkConnectivity();
+  // Wrap each call so one failing section never blocks the others.
+  // Render's free tier can take 30-60s to wake from a cold start —
+  // we just wait it out per-call instead of gatekeeping the whole screen.
+  const safeCall = async <T,>(promise: Promise<T>, fallback: T): Promise<T> => {
+    try {
+      return await promise;
+    } catch (err) {
+      console.warn("HomeScreen section failed (non-blocking):", err);
+      return fallback;
     }
-
-    const candidateUrls = [
-      `${process.env.EXPO_PUBLIC_API_URL}${process.env.EXPO_PUBLIC_API_PREFIX || "/api/v2"}/health`,
-      `${process.env.EXPO_PUBLIC_API_URL}/api/health`,
-      `${process.env.EXPO_PUBLIC_API_URL}/health`,
-      `http://localhost:3000/api/v2/health`,
-    ].filter(Boolean);
-
-    const results: Array<{
-      url: string;
-      ok?: boolean;
-      status?: number;
-      err?: string;
-    }> = [];
-    for (const url of candidateUrls) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
-        const res = await fetch(url, {
-          method: "GET",
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (res.ok) return { url, status: res.status };
-        results.push({ url, ok: false, status: res.status });
-      } catch (err: any) {
-        results.push({ url, err: err?.message || String(err) });
-      }
-    }
-    throw new Error(
-      `No reachable API endpoints. Attempts: ${JSON.stringify(results)}`,
-    );
   };
 
   const loadData = useCallback(async () => {
-    setNetworkError(null);
+    setBannerError(null);
+
+    // Heuristic: if this is the first load and the API has likely been idle,
+    // show a soft "waking up" hint. It auto-clears once data starts arriving.
+    const wakeTimer = setTimeout(() => setWakingUp(true), 4000);
+
     try {
-      try {
-        const conn = await checkApiConnectivity();
-        console.info("API connectivity OK:", conn);
-      } catch (connErr: any) {
-        console.error("API connectivity check failed:", connErr);
-        setNetworkError(connErr?.message || String(connErr));
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
       const [
         recentRes,
         releasesRes,
@@ -124,14 +97,18 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
         bollywoodRes,
         genresRes,
       ] = await Promise.all([
-        api.getRecentlyPlayed(),
-        api.getNewReleases(),
-        api.getTrending(),
-        api.getIndieIndian(),
-        api.getBengali(),
-        api.getByGenre("bollywood", 20),
-        api.getGenres(),
+        safeCall(api.getRecentlyPlayed(), { data: [] }),
+        safeCall(api.getNewReleases(), { data: [] }),
+        safeCall(api.getTrending(), { data: [] }),
+        safeCall(api.getIndieIndian(), { data: [] }),
+        safeCall(api.getBengali(), { data: [] }),
+        safeCall(api.getByGenre("bollywood", 20), { data: [] }),
+        safeCall(api.getGenres(), { data: [], error: null }),
+        ,
       ]);
+
+      clearTimeout(wakeTimer);
+      setWakingUp(false);
 
       setRecentlyPlayed(recentRes.data || []);
       setNewReleases(releasesRes.data || []);
@@ -180,10 +157,27 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
           });
         setArtists(unique);
       }
-    } catch (err) {
+
+      // Only show a banner if absolutely nothing came back —
+      // a genuinely dead backend, not just one slow section.
+      const allEmpty =
+        (recentRes.data?.length || 0) === 0 &&
+        (releasesRes.data?.length || 0) === 0 &&
+        (trendingRes.data?.length || 0) === 0 &&
+        (indieRes.data?.length || 0) === 0 &&
+        (bengaliRes.data?.length || 0) === 0 &&
+        (bollywoodRes.data?.length || 0) === 0 &&
+        (albumData?.length || 0) === 0;
+
+      if (allEmpty) {
+        setBannerError("Having trouble loading content. Pull down to refresh.");
+      }
+    } catch (err: any) {
       console.error("HomeScreen load error:", err);
-      setNetworkError(err?.message || String(err));
+      setBannerError("Having trouble loading content. Pull down to refresh.");
     } finally {
+      clearTimeout(wakeTimer);
+      setWakingUp(false);
       setLoading(false);
       setRefreshing(false);
     }
@@ -217,32 +211,19 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
     [navigation],
   );
 
-  if (loading) return <HomeSkeleton />;
-
-  if (networkError) {
+  if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer} edges={["top"]}>
-        <Text style={{ color: colors.textPrimary, marginBottom: 12 }}>
-          Could not reach backend API:
-        </Text>
-        <Text style={{ color: colors.textSecondary, marginBottom: 20 }}>
-          {networkError}
-        </Text>
-        <TouchableOpacity
-          style={{
-            backgroundColor: colors.primary,
-            padding: 12,
-            borderRadius: 8,
-          }}
-          onPress={() => {
-            setLoading(true);
-            setNetworkError(null);
-            loadData();
-          }}
-        >
-          <Text style={{ color: "#000", fontWeight: "700" }}>Retry</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <View style={{ flex: 1 }}>
+        <HomeSkeleton />
+        {wakingUp && (
+          <View style={styles.wakingBanner}>
+            <ActivityIndicator color={colors.primary} size="small" />
+            <Text style={styles.wakingText}>
+              Waking up the server — this can take up to a minute on first load
+            </Text>
+          </View>
+        )}
+      </View>
     );
   }
 
@@ -287,6 +268,24 @@ export default function HomeScreen({ navigation, onTrackPress }: Props) {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+
+      {/* Non-blocking banner — only shows if everything genuinely failed */}
+      {bannerError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText} numberOfLines={2}>
+            {bannerError}
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setBannerError(null);
+              onRefresh();
+            }}
+          >
+            <Text style={styles.errorBannerRetry}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -710,6 +709,48 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  wakingBanner: {
+    position: "absolute",
+    bottom: 100,
+    left: spacing.lg,
+    right: spacing.lg,
+    backgroundColor: colors.bgCard,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  wakingText: {
+    ...typography.xs,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.bgCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    gap: spacing.md,
+  },
+  errorBannerText: {
+    ...typography.xs,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  errorBannerRetry: {
+    ...typography.xs,
+    ...typography.bold,
+    color: colors.primary,
   },
 
   topBar: {

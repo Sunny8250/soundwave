@@ -41,18 +41,36 @@ const slugify = (value) =>
 router.post(
   "/",
   requireAuth,
-  requireMinRole("creator"),
   validateBody(artistCreateSchema),
   async (req, res) => {
     const { name, bio, country, avatar_url, header_image_url } = req.body;
     if (!name || !String(name).trim()) {
       return res.status(400).json({ error: "Artist name is required" });
     }
-
     const cleanName = String(name).trim();
+
+    // First, look for an existing artist with this exact name (case-insensitive),
+    // regardless of owner. This avoids fragmenting the same real-world artist
+    // (e.g. "Arijit Singh") into multiple duplicate profiles when different
+    // uploaders credit them as a collaborator.
+    const { data: existingGlobal, error: existingErr } = await supabaseAdmin
+      .from("artists")
+      .select("*")
+      .ilike("name", cleanName)
+      .limit(1);
+
+    if (existingErr)
+      return res.status(400).json({ error: existingErr.message });
+
+    if (existingGlobal?.[0]) {
+      return res.json({ data: existingGlobal[0] });
+    }
+
+    // No existing artist with this name anywhere — create a new profile
+    // owned by the requesting user. Works for listeners uploading their
+    // first album as well as creators crediting new collaborators.
     const artistIdSuffix = Math.random().toString(36).slice(2, 8);
     const slug = `${slugify(cleanName)}-${artistIdSuffix}`;
-
     const { data, error } = await supabaseAdmin
       .from("artists")
       .insert({
@@ -67,7 +85,20 @@ router.post(
       .select()
       .single();
 
-    if (error) return res.status(400).json({ error: error.message });
+    if (error) {
+      if (error.code === "23505") {
+        // Race condition — someone else created it between our check and insert.
+        // Fetch and return the now-existing record instead of failing.
+        const { data: raceWinner } = await supabaseAdmin
+          .from("artists")
+          .select("*")
+          .ilike("name", cleanName)
+          .limit(1)
+          .single();
+        if (raceWinner) return res.json({ data: raceWinner });
+      }
+      return res.status(400).json({ error: error.message });
+    }
 
     await supabaseAdmin
       .from("users")

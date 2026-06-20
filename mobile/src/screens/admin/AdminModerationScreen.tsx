@@ -51,7 +51,7 @@ export default function AdminModerationScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState("Reports");
   const [filter, setFilter] = useState("all");
   const [reports, setReports] = useState<any[]>([]);
-  const [blocked, setBlocked] = useState<any[]>([]);
+  const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,7 +157,7 @@ export default function AdminModerationScreen({ navigation }: any) {
                 }
               },
             });
-          } catch (err) {
+          } catch (err: any) {
             console.error("Moderation takedown error", err);
             Alert.alert("Error", err?.message || "Failed to take down content");
           }
@@ -194,7 +194,7 @@ export default function AdminModerationScreen({ navigation }: any) {
                 }
               },
             });
-          } catch (err) {
+          } catch (err: any) {
             console.error("Block user error", err);
             Alert.alert("Error", err?.message || "Failed to block user");
           }
@@ -605,8 +605,8 @@ export default function AdminModerationScreen({ navigation }: any) {
                                     user.id,
                                     "active",
                                   );
-                                  setBlockedUsers((prev) =>
-                                    prev.filter((u) => u.id !== user.id),
+                                  setBlockedUsers((prev: any[]) =>
+                                    prev.filter((u: any) => u.id !== user.id),
                                   );
                                   Alert.alert("Success", "User unblocked");
                                 } catch (err: any) {
@@ -892,6 +892,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: spacing.md,
+  },
+  skeletonReportRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.md,
+  },
+  skeletonReportMeta: {
+    flex: 1,
+    gap: spacing.xs,
   },
   loadingText: { ...typography.sm, color: colors.textSecondary },
   scrollContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },

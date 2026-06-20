@@ -567,13 +567,23 @@ export default function AdminContentScreen({ navigation }: any) {
     }
 
     return (
-      <View style={[styles.artwork, { width: size, height: size }]}>
+      <View
+        style={[
+          styles.artwork,
+          {
+            width: size,
+            height: size,
+            justifyContent: "center",
+            alignItems: "center",
+            overflow: "hidden",
+          },
+        ]}
+      >
         {uri ? (
           <Image
             source={{ uri }}
             style={{ width: size, height: size, borderRadius: radius.md }}
             resizeMode="cover"
-            cache="force-cache"
           />
         ) : (
           <Text style={{ fontSize: size * 0.38 }}>{fallback}</Text>
@@ -975,26 +985,21 @@ export default function AdminContentScreen({ navigation }: any) {
                       </Text>
                     </View>
                     {selectedIds.size === 0 && (
-                      <View
-                        style={styles.dropdownContainer}
-                        pointerEvents="box-none"
-                      >
-                        <DropdownMenu
-                          id={track.id}
-                          items={[
-                            {
-                              label: "⬇ Takedown",
-                              color: colors.yellow,
-                              onPress: () => handleTakedownTrack(track.id),
-                            },
-                            {
-                              label: "🗑 Delete",
-                              color: colors.red,
-                              onPress: () => handleDeleteTrack(track.id),
-                            },
-                          ]}
-                        />
-                      </View>
+                      <DropdownMenu
+                        id={track.id}
+                        items={[
+                          {
+                            label: "⬇ Takedown",
+                            color: colors.yellow,
+                            onPress: () => handleTakedownTrack(track.id),
+                          },
+                          {
+                            label: "🗑 Delete",
+                            color: colors.red,
+                            onPress: () => handleDeleteTrack(track.id),
+                          },
+                        ]}
+                      />
                     )}
                   </View>
                 ))
@@ -1709,6 +1714,12 @@ const styles = StyleSheet.create({
     shadowRadius: 16,
     elevation: 999,
     overflow: "visible",
+  },
+  artwork: {
+    borderRadius: radius.md,
+    backgroundColor: colors.bgElevated,
+    justifyContent: "center",
+    alignItems: "center",
   },
   dropdownItem: {
     paddingVertical: spacing.md,

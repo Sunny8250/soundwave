@@ -12,6 +12,11 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://soundwave-backend-7m5d.onrender.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://vcqzyxesziuytlvxmhti.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjcXp5eGVzeml1eXRsdnhtaHRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxNTEyMTMsImV4cCI6MjA5NTcyNzIxM30.s__GnHO3cj1TdN4VC4cnhSst_b9o7H7SfQHrpBQbRSs"
       }
     },
     "production": {

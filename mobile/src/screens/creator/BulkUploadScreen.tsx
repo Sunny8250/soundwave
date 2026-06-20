@@ -52,12 +52,13 @@ export default function BulkUploadScreen({ navigation }: Props) {
         copyToCacheDirectory: true,
       });
 
-      if (result.type === "cancel") return;
-      if (!Array.isArray(result.output) && result.type !== "success") return;
+      if ((result as any).canceled) return;
 
-      const assets = Array.isArray(result.output) ? result.output : [result];
+      const assets = Array.isArray((result as any).output)
+        ? (result as any).output
+        : [result as any];
 
-      const newTracks: TrackItem[] = assets.map((asset) => ({
+      const newTracks: TrackItem[] = (assets as any[]).map((asset) => ({
         id: Math.random().toString(36).slice(2),
         file: asset,
         title: asset.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "),
@@ -147,15 +148,17 @@ export default function BulkUploadScreen({ navigation }: Props) {
         explicit: t.explicit,
       }));
 
-      const response = await api.bulkUpload(files, metadata);
+      const response: any = await api.bulkUpload(files, metadata);
 
-      const resultMap = new Map(response.results.map((r: any) => [r.index, r]));
+      const resultMap = new Map(
+        (response.results || []).map((r: any) => [r.index, r]),
+      );
       let resultIndex = 0;
 
       setTracks((prev) =>
         prev.map((t) => {
           if (t.status !== "uploading") return t;
-          const result = resultMap.get(resultIndex++);
+          const result = resultMap.get(resultIndex++) as any;
           if (!result) return t;
           if (result.success) {
             return { ...t, status: "done", progress: 100 };

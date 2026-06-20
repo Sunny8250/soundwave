@@ -57,18 +57,10 @@ const { height } = Dimensions.get("window");
 
 // ── MiniPlayerContainer ───────────────────────────────────────
 function MiniPlayerContainer({ onOpen }: { onOpen: () => void }) {
-  const currentTrack = useAppSelector(
-    require("../store/selectors/playerSelectors").selectCurrentTrack,
-  );
-  const isPlaying = useAppSelector(
-    require("../store/selectors/playerSelectors").selectIsPlaying,
-  );
-  const position = useAppSelector(
-    require("../store/selectors/playerSelectors").selectPosition,
-  );
-  const duration = useAppSelector(
-    require("../store/selectors/playerSelectors").selectDuration,
-  );
+  const currentTrack = useAppSelector((s: any) => s.player.currentTrack as any);
+  const isPlaying = useAppSelector((s: any) => s.player.isPlaying) as boolean;
+  const position = useAppSelector((s: any) => s.player.position) as number;
+  const duration = useAppSelector((s: any) => s.player.duration) as number;
   const dispatch = useAppDispatch();
 
   const handlePlayPause = useCallback(async () => {

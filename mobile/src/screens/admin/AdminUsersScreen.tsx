@@ -157,7 +157,9 @@ export default function AdminUsersScreen({ navigation }: any) {
       {
         text: confirmText,
         style: destructive ? "destructive" : "default",
-        onPress: onConfirm,
+        onPress: async () => {
+          await onConfirm();
+        },
       },
     ]);
   };
@@ -301,7 +303,7 @@ export default function AdminUsersScreen({ navigation }: any) {
             ? `Unblock ${getUserLabel(user)}?`
             : `Block ${getUserLabel(user)}?`,
           user?.account_status === "blocked" ? "Unblock" : "Block",
-          () => {
+          async () => {
             const prevStatus = user?.account_status;
             const newStatus = prevStatus === "blocked" ? "active" : "blocked";
             try {
@@ -313,7 +315,9 @@ export default function AdminUsersScreen({ navigation }: any) {
               );
             } catch (e) {}
 
-            runAction(() => adminService.setAccountStatus(user.id, newStatus));
+            await runAction(() =>
+              adminService.setAccountStatus(user.id, newStatus),
+            );
 
             showToast(
               prevStatus === "blocked" ? "User unblocked" : "User blocked",

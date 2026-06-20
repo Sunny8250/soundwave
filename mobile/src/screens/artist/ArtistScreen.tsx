@@ -28,6 +28,40 @@ import {
 
 const { width } = Dimensions.get("window");
 
+interface Track {
+  id: string;
+  title: string;
+  duration_ms?: number;
+  play_count?: number;
+  like_count?: number;
+  explicit?: boolean;
+  cover_art_url?: string | null;
+  album_id?: string | null;
+  artist_ids?: string[];
+  artists?: {
+    id: string;
+    name: string;
+    avatar_url?: string | null;
+  };
+  albums?: {
+    id: string;
+    title: string;
+    cover_art_url?: string | null;
+    type?: string;
+    release_date?: string;
+    is_published?: boolean;
+  };
+}
+
+interface Album {
+  id: string;
+  title: string;
+  cover_art_url?: string | null;
+  artist_id?: string | null;
+  type?: string;
+  release_date?: string;
+}
+
 interface Props {
   navigation: any;
   route: any;
@@ -54,14 +88,18 @@ export default function ArtistScreen({
   const allTracks = useAppSelector((s) => tracksSelectors.selectAll(s));
   const allAlbums = useAppSelector((s) => albumsSelectors.selectAll(s));
 
-  const artist = artistFromStore || null;
+  const [artist, setArtist] = useState<any>(artistFromStore || null);
+
+  useEffect(() => {
+    if (artistFromStore) setArtist(artistFromStore);
+  }, [artistFromStore]);
   // Tracks for this artist (filter by artist_ids or artists field fallback)
-  const tracks = allTracks.filter((t: any) => {
+  const tracks: any[] = allTracks.filter((t: any) => {
     if (Array.isArray(t.artist_ids) && t.artist_ids.length > 0)
       return t.artist_ids.includes(artistId);
     return t.artists?.id === artistId;
   });
-  const albums = allAlbums.filter((a: any) => a.artist_id === artistId);
+  const albums: any[] = allAlbums.filter((a: any) => a.artist_id === artistId);
   const [isFollowing, setIsFollowing] = useState(false);
   const isOwnProfile = artist?.user_id === user?.id;
 
@@ -259,7 +297,7 @@ export default function ArtistScreen({
     return n.toString();
   };
 
-  const artistTracks = tracks.map((track) => ({
+  const artistTracks = tracks.map((track: any) => ({
     ...track,
     artists: track.artists || {
       id: artist?.id,
@@ -270,13 +308,13 @@ export default function ArtistScreen({
 
   const handlePlayAll = () => {
     if (artistTracks.length === 0) return;
-    dispatch(setQueue(artistTracks));
+    dispatch(setQueue(artistTracks as any));
     if (onTrackPress) onTrackPress(artistTracks[0]);
   };
 
   const handleTrackPress = (track: any) => {
     const index = artistTracks.findIndex((item) => item.id === track.id);
-    dispatch(setQueue(artistTracks.slice(Math.max(index, 0))));
+    dispatch(setQueue(artistTracks.slice(Math.max(index, 0)) as any));
     if (onTrackPress) onTrackPress(track);
   };
 

@@ -389,40 +389,62 @@ export const api = {
 };
 
 // Try multiple health endpoints to diagnose connectivity problems.
-export const checkConnectivity = async () => {
-  const candidates = [] as string[];
-  if (API_BASE) candidates.push(`${API_BASE}/health`);
-  if (API_URL) candidates.push(`${API_URL}/api/health`);
-  if (API_URL) candidates.push(`${API_URL}/health`);
-  // common local fallback
-  candidates.push(`http://localhost:3000/api/v2/health`);
-  const results: Array<{
-    url: string;
-    ok?: boolean;
-    status?: number;
-    err?: string;
-  }> = [];
+// export const checkConnectivity = async () => {
+//   const candidates = [] as string[];
+//   if (API_BASE) candidates.push(`${API_BASE}/health`);
+//   if (API_URL) candidates.push(`${API_URL}/api/health`);
+//   if (API_URL) candidates.push(`${API_URL}/health`);
+//   // common local fallback
+//   candidates.push(`http://localhost:3000/api/v2/health`);
+//   const results: Array<{
+//     url: string;
+//     ok?: boolean;
+//     status?: number;
+//     err?: string;
+//   }> = [];
 
-  for (const url of candidates) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3000);
-      const res = await fetch(url, {
-        method: "GET",
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
-      if (res.ok) return { url, status: res.status };
-      results.push({ url, ok: false, status: res.status });
-    } catch (err: any) {
-      results.push({
-        url,
-        err: err && err.message ? err.message : String(err),
-      });
-    }
+//   for (const url of candidates) {
+//     try {
+//       const controller = new AbortController();
+//       const timeout = setTimeout(() => controller.abort(), 3000);
+//       const res = await fetch(url, {
+//         method: "GET",
+//         signal: controller.signal,
+//       });
+//       clearTimeout(timeout);
+//       if (res.ok) return { url, status: res.status };
+//       results.push({ url, ok: false, status: res.status });
+//     } catch (err: any) {
+//       results.push({
+//         url,
+//         err: err && err.message ? err.message : String(err),
+//       });
+//     }
+//   }
+
+//   throw new Error(
+//     `No reachable API endpoints. Attempts: ${JSON.stringify(results)}`,
+//   );
+// };
+
+// Simplified connectivity check — only tests the real API URL, with a generous
+// timeout to account for Render free-tier cold starts (up to 60s to wake up)
+export const checkConnectivity = async () => {
+  if (!API_URL) {
+    throw new Error("EXPO_PUBLIC_API_URL is not configured");
   }
 
-  throw new Error(
-    `No reachable API endpoints. Attempts: ${JSON.stringify(results)}`,
-  );
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000); // 45s for cold start
+    const res = await fetch(`${API_URL}/api/health`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) return { url: `${API_URL}/api/health`, status: res.status };
+    throw new Error(`Health check returned status ${res.status}`);
+  } catch (err: any) {
+    throw new Error(`Could not reach backend: ${err?.message || String(err)}`);
+  }
 };

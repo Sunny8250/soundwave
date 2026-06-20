@@ -12,9 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#080808"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.soundwave.app"
@@ -35,9 +33,7 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-web-browser"
-    ],
+    "plugins": [],
     "extra": {
       "eas": {
         "projectId": "ce1e7ed3-2add-4b49-ab6c-035a10e4ba20"

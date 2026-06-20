@@ -24,9 +24,15 @@ interface Album {
   artist_id?: string | null;
 }
 
-const tracksAdapter = createEntityAdapter<Track>({ selectId: (t) => t.id });
-const artistsAdapter = createEntityAdapter<Artist>({ selectId: (a) => a.id });
-const albumsAdapter = createEntityAdapter<Album>({ selectId: (a) => a.id });
+const tracksAdapter = createEntityAdapter<Track, string>({
+  selectId: (t) => t.id,
+});
+const artistsAdapter = createEntityAdapter<Artist, string>({
+  selectId: (a) => a.id,
+});
+const albumsAdapter = createEntityAdapter<Album, string>({
+  selectId: (a) => a.id,
+});
 
 const entitiesSlice = createSlice({
   name: "entities",
